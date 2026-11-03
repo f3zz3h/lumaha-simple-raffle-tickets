@@ -1,0 +1,79 @@
+name: Release
+run-name: ${{ github.ref_type == 'tag' && format('Release {0}', github.ref_name) || format('Plugin zip for {0}', github.ref_name) }}
+
+# On a version tag (v0.3.0), build the plugin zip and publish a GitHub release with it.
+# On pull requests, just build the zip so it can be downloaded and tried.
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  zip:
+    name: Build plugin zip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+
+      # WP-CLI refreshes the translation template inside the zip.
+      - name: Set up PHP and WP-CLI
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: wp-cli
+
+      - name: Build zip
+        id: build
+        # On a tag, the plugin version must match it: v0.3.0 → 0.3.0.
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            bash .github/scripts/build-zip.sh "${GITHUB_REF_NAME#v}"
+          else
+            bash .github/scripts/build-zip.sh
+          fi
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.build.outputs.name }}
+          path: ${{ steps.build.outputs.zip }}
+          retention-days: ${{ github.ref_type == 'tag' && 90 || 7 }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    if: github.ref_type == 'tag'
+    needs: zip
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+
+      # WP-CLI refreshes the translation template inside the zip.
+      - name: Set up PHP and WP-CLI
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: wp-cli
+
+      - name: Build zip
+        id: build
+        run: bash .github/scripts/build-zip.sh "${GITHUB_REF_NAME#v}"
+
+      # The WordPress.org version: no GitHub updater (for submitting to, and later deploying on, WordPress.org).
+      - name: Build WordPress.org zip
+        id: wporg
+        run: bash .github/scripts/build-zip.sh --wporg "${GITHUB_REF_NAME#v}"
+
+      - name: Create release with the zips
+        run: gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" "${{ steps.wporg.outputs.zip }}" --title "Lumaha Simple Raffle Tickets ${{ steps.build.outputs.version }}" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
