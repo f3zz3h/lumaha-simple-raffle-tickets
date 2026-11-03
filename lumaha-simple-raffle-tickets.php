@@ -11,6 +11,7 @@
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
  * Text Domain:       lumaha-simple-raffle-tickets
+ * Update URI:        https://github.com/f3zz3h/lumaha-simple-raffle-tickets
  *
  * Which products: any product in the "Raffle tickets" category (slug raffle-tickets)
  * or any sub-category of it, or any product tagged "raffle". Duplicating a product
@@ -21,6 +22,15 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+define( 'LSRT_PLUGIN_FILE', __FILE__ );
+
+// lsrt-github-updater:start (the WordPress.org build removes this block and the file; it updates from WordPress.org).
+// Updates from GitHub releases (starts itself), for copies installed from the GitHub release zip.
+if ( file_exists( __DIR__ . '/includes/class-lsrt-github-updater.php' ) ) {
+	require_once __DIR__ . '/includes/class-lsrt-github-updater.php';
+}
+// lsrt-github-updater:end
 
 final class Lumaha_Simple_Raffle_Tickets {
 

@@ -1,0 +1,15 @@
+# Files and folders left out of the installable plugin zip.
+# One pattern per line, as for rsync --exclude-from.
+.git
+.github
+.gitignore
+.gitattributes
+.distignore
+/.wordpress-org
+.vscode
+/tests
+/vendor
+/node_modules
+composer.json
+composer.lock
+/docs
