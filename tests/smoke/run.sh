@@ -33,9 +33,10 @@ stage "WordPress.org zip"
 install_zip "$(ls "$DIST"/$PLUGIN-*-wporg.zip)"
 wp eval-file "$CHECKS" wporg
 
-stage "PHP notices and errors"
-if [ -f "$LOG" ] && grep -i "$PLUGIN" "$LOG"; then
-	echo "The plugin logged PHP notices or errors (above)." >&2
+# Only errors raised in the plugin's own files count (WooCommerce logs notices of its own).
+stage "PHP errors from the plugin"
+if [ -f "$LOG" ] && grep -E "PHP (Fatal error|Parse error|Warning|Notice|Deprecated).*plugins/$PLUGIN/" "$LOG"; then
+	echo "FAIL the plugin logged PHP errors (above)" >&2
 	exit 1
 fi
-echo "None from the plugin"
+echo "ok   none logged"
