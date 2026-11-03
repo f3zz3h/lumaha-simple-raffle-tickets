@@ -88,10 +88,12 @@ The plugin declares compatibility with WooCommerce's High-Performance Order Stor
 
 ### Releasing a version
 
-1. On a branch, bump `Version:` in the plugin header and `VERSION` in `Lumaha_Simple_Raffle_Tickets`, and update `Stable tag` and the changelog in `readme.txt`. Merge it.
+1. On a branch, bump `Version:` in the plugin header and `VERSION` in `Lumaha_Simple_Raffle_Tickets`, and update `Stable tag` and the changelog in `readme.txt`. The zip build fails if `Stable tag` doesn't match the plugin version. Merge it.
 2. Tag `main` and push the tag: `git tag v0.3.0 && git push origin v0.3.0`.
 3. The **Release** workflow checks the tag matches the plugin version, builds the zip and publishes a GitHub release with `lumaha-simple-raffle-tickets-<version>.zip` attached.
 4. Sites on 0.3.0 or later are offered the update within about 12 hours (the plugin header's `Update URI` sends WordPress's update check to the plugin's GitHub updater, which reads the latest release, cached for 12 hours). A release must stay non-draft, non-prerelease and keep its zip, or it isn't offered.
+
+Build a zip locally with `bash .github/scripts/build-zip.sh` (output in `dist/`). `bash .github/scripts/build-zip.sh --wporg` builds the WordPress.org copy, without the GitHub updater and the `Update URI` header, as WordPress.org requires.
 
 ### WordPress.org readme
 
