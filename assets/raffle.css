@@ -1,0 +1,6 @@
+.lsrt { margin: 0 0 1em; padding: 1em; border: 1px solid #ddd; border-radius: 6px; width: 100%; }
+.lsrt-intro { margin: 0 0 .75em; font-size: .95em; }
+.lsrt-row { margin: 0 0 .75em; }
+.lsrt-row label { display: block; font-weight: 600; margin-bottom: .25em; }
+.lsrt-row input { max-width: 12em; }
+.lsrt-fill { font-size: .9em; opacity: .8; margin-top: .25em; }
