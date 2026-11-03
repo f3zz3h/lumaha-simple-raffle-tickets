@@ -31,6 +31,9 @@ final class Lumaha_Simple_Raffle_Tickets {
 	const META_RECORDED  = '_lsrt_recorded';  // order meta flag
 	const FIELD          = 'lsrt_start';
 
+	/** Set when an add to cart succeeds on this request. */
+	private $added = false;
+
 	public static function init() {
 		$self = new self();
 
@@ -51,6 +54,7 @@ final class Lumaha_Simple_Raffle_Tickets {
 		// Cart.
 		add_filter( 'woocommerce_add_to_cart_validation', array( $self, 'validate' ), 10, 4 );
 		add_filter( 'woocommerce_add_cart_item_data', array( $self, 'add_cart_item_data' ), 10, 3 );
+		add_action( 'woocommerce_add_to_cart', array( $self, 'mark_added' ) );
 		add_filter( 'woocommerce_get_item_data', array( $self, 'show_in_cart' ), 10, 2 );
 		add_filter( 'woocommerce_cart_item_quantity', array( $self, 'lock_quantity_classic' ), 10, 3 );
 		add_filter( 'woocommerce_store_api_product_quantity_editable', array( $self, 'lock_quantity_blocks' ), 10, 3 );
@@ -185,7 +189,7 @@ final class Lumaha_Simple_Raffle_Tickets {
 		// The product template has no WooCommerce notices area, so show any errors here.
 		$notices = '';
 		// After a rejected add, put the buyer's numbers back in the boxes.
-		$old = wc_notice_count( 'error' ) > 0 ? $this->posted_starts() : array();
+		$old = $this->rejected_starts( $product );
 		if ( function_exists( 'wc_print_notices' ) && wc_notice_count() > 0 ) {
 			$notices = wc_print_notices( true );
 		}
@@ -197,6 +201,26 @@ final class Lumaha_Simple_Raffle_Tickets {
 			$notices, // phpcs:ignore WordPress.Security.EscapeOutput -- WooCommerce notice HTML.
 			esc_html__( 'Enter your ticket numbers. For a book, enter the first number on the book and the rest fill in.', 'lumaha-simple-raffle-tickets' )
 		);
+	}
+
+	/**
+	 * The numbers the buyer just submitted for this product, if the add to cart was turned down.
+	 *
+	 * Don't rely on error notices here: most themes print (and clear) them above the
+	 * product before these boxes are drawn.
+	 */
+	private function rejected_starts( $product ) {
+		if ( $this->added || empty( $_REQUEST['add-to-cart'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification -- add to cart has no nonce.
+			return array();
+		}
+		if ( absint( wp_unslash( $_REQUEST['add-to-cart'] ) ) !== (int) $product->get_id() ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return array();
+		}
+		return $this->posted_starts();
+	}
+
+	public function mark_added() {
+		$this->added = true;
 	}
 
 	public function enqueue() {
