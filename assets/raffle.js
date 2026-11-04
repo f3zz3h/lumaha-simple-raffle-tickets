@@ -5,6 +5,8 @@ jQuery( function ( $ ) {
 		var $form  = $box.closest( 'form.cart' );
 		var $rows  = $box.find( '.lsrt-rows' );
 		var sizes  = $box.data( 'sizes' ) || {};
+		// Let the theme's flex row wrap so the add to cart button stays on screen (see raffle.css).
+		$box.parent().addClass( 'lsrt-wrap' );
 		var size   = parseInt( $box.data( 'default-size' ), 10 ) || 0;
 
 		function qty() {
