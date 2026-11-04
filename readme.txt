@@ -6,7 +6,7 @@ Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,9 @@ No. The plugin uses no external services.
 
 == Changelog ==
 
+= 0.3.1 =
+* Fixed: on phones, the ticket number boxes no longer push the add to basket button off the right of the screen.
+
 = 0.3.0 =
 * New: updates from GitHub releases show up as normal plugin updates (Dashboard → Updates and the Plugins screen), with auto-updates, for copies installed from the GitHub release zip.
 * Fixed: the ticket boxes keep what the buyer typed after a refused add to basket on themes that show the error above the product (most themes).
@@ -80,6 +83,9 @@ No. The plugin uses no external services.
 * First version, built for and run on the Horfield SA website.
 
 == Upgrade Notice ==
+
+= 0.3.1 =
+Add to basket button stays on screen on phones. No data changes.
 
 = 0.3.0 =
 Ticket numbers stay in the boxes after a basket error on all themes. No data changes.
