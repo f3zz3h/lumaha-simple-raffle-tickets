@@ -113,8 +113,10 @@ switch ( $lsrt_check ) {
 
 		wp_set_current_user( 1 );
 		set_current_screen( 'dashboard' );
+		global $menu, $submenu;
+		$menu    = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride -- no admin menu outside wp-admin.
+		$submenu = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride
 		do_action( 'admin_menu' );
-		global $submenu;
 		$lsrt_menu = wp_list_pluck( isset( $submenu['woocommerce'] ) ? $submenu['woocommerce'] : array(), 2 );
 		lsrt_check( in_array( 'lsrt-tickets', $lsrt_menu, true ), 'WooCommerce → Raffle tickets menu is there' );
 

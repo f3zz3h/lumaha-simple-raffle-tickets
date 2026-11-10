@@ -78,11 +78,9 @@ final class Lumaha_Simple_Raffle_Tickets {
 		add_action( 'woocommerce_order_status_refunded', array( $self, 'release_sold' ) );
 		add_action( 'woocommerce_order_status_failed', array( $self, 'release_sold' ) );
 
-		// Admin list of every ticket sold: WooCommerce → Raffle tickets.
-		if ( is_admin() ) {
-			require_once __DIR__ . '/includes/class-lsrt-ticket-list.php';
-			new LSRT_Ticket_List( $self );
-		}
+		// Admin list of every ticket sold: WooCommerce → Raffle tickets (its hooks only run in wp-admin).
+		require_once __DIR__ . '/includes/class-lsrt-ticket-list.php';
+		new LSRT_Ticket_List( $self );
 	}
 
 	/* ---------------------------------------------------------------------
