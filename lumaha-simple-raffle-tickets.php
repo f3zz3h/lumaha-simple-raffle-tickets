@@ -3,7 +3,7 @@
  * Plugin Name:       Lumaha Simple Raffle Tickets
  * Plugin URI:        https://github.com/f3zz3h/lumaha-simple-raffle-tickets
  * Description:       Asks buyers for their raffle ticket numbers. Books auto-fill from the first number, singles take one number each, and the numbers are saved on the order.
- * Version:           0.3.1
+ * Version:           0.4.0
  * Author:            Lumaha
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -34,7 +34,7 @@ if ( file_exists( __DIR__ . '/includes/class-lsrt-github-updater.php' ) ) {
 
 final class Lumaha_Simple_Raffle_Tickets {
 
-	const VERSION        = '0.3.1';
+	const VERSION        = '0.4.0';
 	const META_BOOK_SIZE = '_lsrt_book_size';
 	const META_SOLD      = '_lsrt_sold';      // product meta: number => order id
 	const META_NUMBERS   = '_lsrt_numbers';   // order item meta: every number, comma separated
@@ -78,6 +78,9 @@ final class Lumaha_Simple_Raffle_Tickets {
 		add_action( 'woocommerce_order_status_refunded', array( $self, 'release_sold' ) );
 		add_action( 'woocommerce_order_status_failed', array( $self, 'release_sold' ) );
 
+		// Admin list of every ticket sold: WooCommerce → Raffle tickets (its hooks only run in wp-admin).
+		require_once __DIR__ . '/includes/class-lsrt-ticket-list.php';
+		new LSRT_Ticket_List( $self );
 	}
 
 	/* ---------------------------------------------------------------------
