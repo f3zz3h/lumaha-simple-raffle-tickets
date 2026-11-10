@@ -27,6 +27,7 @@ wp plugin activate woocommerce
 stage "GitHub zip"
 install_zip "$(ls "$DIST"/$PLUGIN-*.zip | grep -v -- '-wporg\.zip$')"
 wp eval-file "$CHECKS" github
+wp eval-file "$CHECKS" list
 wp plugin deactivate "$PLUGIN"
 
 stage "WordPress.org zip"

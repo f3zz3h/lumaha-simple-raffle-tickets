@@ -51,6 +51,18 @@ A simple (non-variable) product in the raffle category sells single tickets.
 - When an order becomes **Processing** or **Completed**, its numbers are added to that product's sold list. If a number was already paid for on another order, the plugin adds an order note: *Raffle: these ticket numbers were already paid for on another order: 103 (order #1234). Please check with the buyer.* The order still goes through.
 - When an order is **Cancelled**, **Refunded** or **Failed**, its numbers are taken off the sold list again.
 
+### 5. Ticket list (tallying the stubs)
+
+**WooCommerce → Raffle tickets**, for administrators and shop managers, lists every ticket number sold online so you can tick them off against the paper stubs.
+
+- One tab per **year** (the year the order was placed), and inside it one list per **raffle**. A raffle is a product, so make a new product for each event (for example *Christmas Fair Raffle 2026*, then *Summer Fair Raffle 2027*) rather than reusing one. **Duplicate** does that in one click.
+- Each list is in ticket number order, one row per book or single ticket: numbers, book or single, buyer, order number (links to the order), date, payment method and status, with an empty tick box for printing.
+- At the top of each list: tickets sold, orders and money taken.
+- Orders still **Pending payment** or **On hold** are shown in amber and counted as not paid yet. **Cancelled**, **Refunded** and **Failed** orders are left off.
+- A number on more than one order is shown in red.
+- **Print** gives a clean paper copy (each raffle on its own page). **Download CSV** gives the same rows with the buyer's email and phone, for a spreadsheet.
+- Sales show even if the product later leaves the raffle category, because the list reads the numbers saved on the orders.
+
 ---
 
 ## For developers
@@ -59,6 +71,9 @@ A simple (non-variable) product in the raffle category sells single tickets.
 
 ```
 lumaha-simple-raffle-tickets.php   The whole plugin: class Lumaha_Simple_Raffle_Tickets
+includes/
+  class-lsrt-ticket-list.php       WooCommerce → Raffle tickets: the admin ticket list and CSV
+  class-lsrt-github-updater.php    Updates from GitHub releases (left out of the WordPress.org build)
 assets/
   raffle.js                        Product page: one box per book/ticket, shows the filled-in numbers
   raffle.css                       Styles for the ticket boxes
@@ -85,6 +100,9 @@ The plugin declares compatibility with WooCommerce's High-Performance Order Stor
 | `lsrt_tag_slugs` | filter | Tag slugs that mark a raffle product (default `raffle`) |
 | `lsrt_is_raffle_product` | filter | Final say on whether a product is a raffle (`$is`, `$product`) |
 | `lsrt_default_book_size` | filter | Tickets in a plain "Book" (default 5; `$size`, `$variation`) |
+| `lsrt_ticket_list_capability` | filter | Who can see the ticket list (default `manage_woocommerce`: administrators and shop managers) |
+| `lsrt_ticket_list_skipped_statuses` | filter | Order statuses left off the list (default cancelled, refunded, failed, trash, checkout-draft) |
+| `lsrt_ticket_list_paid_statuses` | filter | Order statuses counted as paid (default WooCommerce's paid statuses: processing, completed) |
 
 ### Releasing a version
 

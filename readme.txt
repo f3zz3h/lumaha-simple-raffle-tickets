@@ -6,7 +6,7 @@ Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.1
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,7 @@ Made for clubs, schools and charities that sell printed raffle books and want to
 * The same number twice in one basket is refused
 * A number already paid for on another order adds an order note for you to check
 * Numbers on cancelled, refunded or failed orders are freed up again
+* **WooCommerce → Raffle tickets** lists every ticket sold online in number order, by year and raffle, with buyer, order and payment, to tally against the paper stubs. Print it or download a CSV. Numbers sold twice are flagged
 * Works with the block and classic basket, and with High-Performance Order Storage
 
 == Installation ==
@@ -68,6 +69,9 @@ No. The plugin uses no external services.
 
 == Changelog ==
 
+= 0.4.0 =
+* New: **WooCommerce → Raffle tickets**, for administrators and shop managers. Every ticket number sold online, in number order, one tab per year and one list per raffle, with the buyer, order, payment method and status. Print it or download a CSV to tally against the paper stubs. Unpaid orders and numbers sold on two orders are highlighted.
+
 = 0.3.1 =
 * Fixed: on phones, the ticket number boxes no longer push the add to basket button off the right of the screen.
 
@@ -83,6 +87,9 @@ No. The plugin uses no external services.
 * First version, built for and run on the Horfield SA website.
 
 == Upgrade Notice ==
+
+= 0.4.0 =
+Adds WooCommerce → Raffle tickets, a list of every ticket sold for tallying the paper stubs. No data changes.
 
 = 0.3.1 =
 Add to basket button stays on screen on phones. No data changes.
