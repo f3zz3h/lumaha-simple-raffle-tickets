@@ -62,6 +62,7 @@ A simple (non-variable) product in the raffle category sells single tickets.
 - A number on more than one order is shown in red.
 - **Print** gives a clean paper copy (each raffle on its own page). **Download CSV** gives the same rows with the buyer's email and phone, for a spreadsheet.
 - Sales show even if the product later leaves the raffle category, because the list reads the numbers saved on the orders.
+- Orders from before the plugin, with numbers typed into an old **Ticket Numbers** product field (for example `02191-02195, 01866`), are listed too: a range counts as a book, a lone number as a single.
 
 ---
 
@@ -102,6 +103,7 @@ The plugin declares compatibility with WooCommerce's High-Performance Order Stor
 | `lsrt_default_book_size` | filter | Tickets in a plain "Book" (default 5; `$size`, `$variation`) |
 | `lsrt_ticket_list_capability` | filter | Who can see the ticket list (default `manage_woocommerce`: administrators and shop managers) |
 | `lsrt_ticket_list_skipped_statuses` | filter | Order statuses left off the list (default cancelled, refunded, failed, trash, checkout-draft) |
+| `lsrt_ticket_list_legacy_keys` | filter | Older order line meta keys holding typed ticket numbers, read when a line has no `_lsrt_numbers` (default `Ticket Numbers`) |
 | `lsrt_ticket_list_paid_statuses` | filter | Order statuses counted as paid (default WooCommerce's paid statuses: processing, completed) |
 
 ### Releasing a version

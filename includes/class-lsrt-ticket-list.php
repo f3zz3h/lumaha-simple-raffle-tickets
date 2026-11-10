@@ -65,20 +65,35 @@ final class LSRT_Ticket_List {
 	 */
 	private function rows() {
 		global $wpdb;
+		$legacy = array_values( array_filter( array_map( 'strval', $this->legacy_keys() ) ) );
+		$keys   = array_merge( array( '_lsrt_numbers' ), $legacy );
+		$in     = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
+		// BINARY: meta keys compare case-insensitively, and the plugin's own "Ticket numbers" must not count as an old key.
 		$items = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- admin report, no core API for this.
-			"SELECT oi.order_item_id, oi.order_id, oi.order_item_name, pm.meta_value AS product_id, vm.meta_value AS variation_id, nm.meta_value AS numbers
-			FROM {$wpdb->prefix}woocommerce_order_items oi
-			JOIN {$wpdb->prefix}woocommerce_order_itemmeta nm ON nm.order_item_id = oi.order_item_id AND nm.meta_key = '_lsrt_numbers'
-			LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta pm ON pm.order_item_id = oi.order_item_id AND pm.meta_key = '_product_id'
-			LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta vm ON vm.order_item_id = oi.order_item_id AND vm.meta_key = '_variation_id'
-			WHERE oi.order_item_type = 'line_item'"
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- placeholders built above.
+				"SELECT oi.order_item_id, oi.order_id, oi.order_item_name, nm.meta_key, nm.meta_value AS numbers, pm.meta_value AS product_id
+				FROM {$wpdb->prefix}woocommerce_order_items oi
+				JOIN {$wpdb->prefix}woocommerce_order_itemmeta nm ON nm.order_item_id = oi.order_item_id AND BINARY nm.meta_key IN ($in)
+				LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta pm ON pm.order_item_id = oi.order_item_id AND pm.meta_key = '_product_id'
+				WHERE oi.order_item_type = 'line_item'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$keys
+			)
 		);
+
+		// One entry per line: the plugin's own numbers win over an old key on the same line.
+		$lines = array();
+		foreach ( (array) $items as $it ) {
+			$id = (int) $it->order_item_id;
+			if ( ! isset( $lines[ $id ] ) || '_lsrt_numbers' === $it->meta_key ) {
+				$lines[ $id ] = $it;
+			}
+		}
 
 		$skip  = $this->skipped_statuses();
 		$paid  = $this->paid_statuses();
 		$names = array();
 		$rows  = array();
-		foreach ( (array) $items as $it ) {
+		foreach ( $lines as $it ) {
 			$order = wc_get_order( (int) $it->order_id );
 			if ( ! $order || 'shop_order' !== $order->get_type() || in_array( $order->get_status(), $skip, true ) ) {
 				continue;
@@ -87,8 +102,15 @@ final class LSRT_Ticket_List {
 			if ( ! $item ) {
 				continue;
 			}
-			$numbers = array_values( array_filter( array_map( 'intval', explode( ',', (string) $it->numbers ) ) ) );
-			if ( ! $numbers ) {
+			if ( '_lsrt_numbers' === $it->meta_key ) {
+				// Split the line back into its books: numbers are saved book by book.
+				$numbers = array_values( array_filter( array_map( 'intval', explode( ',', (string) $it->numbers ) ) ) );
+				$qty     = max( 1, (int) $item->get_quantity() );
+				$books   = $numbers ? array_chunk( $numbers, max( 1, (int) floor( count( $numbers ) / $qty ) ) ) : array();
+			} else {
+				$books = $this->parse_legacy( (string) $it->numbers );
+			}
+			if ( ! $books ) {
 				continue;
 			}
 			$pid = (int) $it->product_id;
@@ -97,10 +119,6 @@ final class LSRT_Ticket_List {
 				$names[ $pid ] = $product ? $product->get_name() : $it->order_item_name;
 			}
 
-			// Split the line back into its books: numbers are saved book by book.
-			$qty   = max( 1, (int) $item->get_quantity() );
-			$size  = max( 1, (int) floor( count( $numbers ) / $qty ) );
-			$books = array_chunk( $numbers, $size );
 			$each  = (float) $item->get_total() / count( $books );
 			$date  = $order->get_date_created();
 
@@ -127,6 +145,37 @@ final class LSRT_Ticket_List {
 		return $rows;
 	}
 
+	/**
+	 * Order line meta keys from before this plugin, holding typed ticket numbers.
+	 * Default "Ticket Numbers" (capital N), as saved by product field plugins.
+	 */
+	private function legacy_keys() {
+		return (array) apply_filters( 'lsrt_ticket_list_legacy_keys', array( 'Ticket Numbers' ) );
+	}
+
+	/**
+	 * Books from free text such as "02191-02195, 01866": a range is a book, a number a single ticket.
+	 *
+	 * @return int[][]
+	 */
+	private function parse_legacy( $text ) {
+		$books = array();
+		$text  = str_replace( array( '–', '—', ' to ' ), '-', strtolower( wp_strip_all_tags( $text ) ) );
+		$text  = preg_replace( '/\s*-\s*/', '-', $text );
+		foreach ( preg_split( '/[^\d\-]+/', $text, -1, PREG_SPLIT_NO_EMPTY ) as $part ) {
+			if ( preg_match( '/^(\d+)-(\d+)$/', $part, $m ) && (int) $m[2] >= (int) $m[1] && (int) $m[2] - (int) $m[1] < 100 ) {
+				$books[] = range( (int) $m[1], (int) $m[2] );
+				continue;
+			}
+			foreach ( preg_split( '/-+/', $part, -1, PREG_SPLIT_NO_EMPTY ) as $n ) {
+				if ( (int) $n > 0 ) {
+					$books[] = array( (int) $n );
+				}
+			}
+		}
+		return $books;
+	}
+
 	/** Years with sales, newest first, each holding its raffles: product_id => name. */
 	private function index( array $rows ) {
 		$years = array();
@@ -134,8 +183,9 @@ final class LSRT_Ticket_List {
 			$years[ $r['year'] ][ $r['product_id'] ] = $r['product'];
 		}
 		krsort( $years );
-		foreach ( $years as &$raffles ) {
+		foreach ( $years as $y => $raffles ) {
 			asort( $raffles );
+			$years[ $y ] = $raffles;
 		}
 		return $years;
 	}
