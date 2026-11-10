@@ -503,6 +503,13 @@ final class LSRT_Ticket_List {
 		list( $year, $raffle ) = $this->selection( $years );
 		$clashes               = $this->clashes( $rows );
 		$rows                  = $this->filter( $rows, $year, $raffle );
+		// Raffle by raffle, then by number, as on the page.
+		usort(
+			$rows,
+			static function ( $a, $b ) {
+				return array( $a['product'], $a['numbers'][0], $a['order']->get_id() ) <=> array( $b['product'], $b['numbers'][0], $b['order']->get_id() );
+			}
+		);
 
 		$file = sanitize_file_name( 'raffle-tickets-' . $year . ( $raffle ? '-' . $years[ $year ][ $raffle ] : '' ) . '.csv' );
 		nocache_headers();
