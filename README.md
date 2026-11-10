@@ -62,7 +62,7 @@ A simple (non-variable) product in the raffle category sells single tickets.
 - A number on more than one order is shown in red.
 - **Print** gives a clean paper copy (each raffle on its own page). **Download CSV** gives the same rows with the buyer's email and phone, for a spreadsheet.
 - Sales show even if the product later leaves the raffle category, because the list reads the numbers saved on the orders.
-- Orders from before the plugin, with numbers typed into an old **Ticket Numbers** product field (for example `02191-02195, 01866`), are listed too: a range counts as a book, a lone number as a single.
+- Orders from before the plugin, with numbers typed into an old **Ticket Numbers** product field (for example `02191-02195, 01866`), are listed too. The variation's book size and the line quantity decide the books: the first number of each book is filled in, every number typed is split into books, and a range is a book. A line that doesn't add up is shown as **Check order** so you can look at it by hand.
 
 ---
 

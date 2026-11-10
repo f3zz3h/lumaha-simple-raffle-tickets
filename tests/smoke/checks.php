@@ -110,8 +110,14 @@ switch ( $lsrt_check ) {
 		$lsrt_old->set_product( $lsrt_p );
 		$lsrt_old->set_quantity( 2 );
 		$lsrt_old->set_total( '6' );
-		$lsrt_old->add_meta_data( 'Ticket Numbers', '02191-02195, 01866', true );
+		$lsrt_old->add_meta_data( 'Ticket Numbers', '00036, 01866', true );
 		$lsrt_order->add_item( $lsrt_old );
+		$lsrt_odd = new WC_Order_Item_Product();
+		$lsrt_odd->set_product( $lsrt_p );
+		$lsrt_odd->set_quantity( 1 );
+		$lsrt_odd->set_total( '1' );
+		$lsrt_odd->add_meta_data( 'Ticket Numbers', '5, 6, 7', true );
+		$lsrt_order->add_item( $lsrt_odd );
 		$lsrt_order->set_billing_first_name( 'Smoke' );
 		$lsrt_order->set_billing_last_name( 'Tester' );
 		$lsrt_order->calculate_totals();
@@ -139,7 +145,8 @@ switch ( $lsrt_check ) {
 		lsrt_check( false !== $lsrt_31 && false !== $lsrt_207 && $lsrt_31 < $lsrt_207, 'tickets are in number order' );
 		lsrt_check( false !== strpos( $lsrt_html, gmdate( 'Y' ) ), 'list has a tab for this year' );
 		lsrt_check( 1 === substr_count( $lsrt_html, '>31<' ), 'a line is listed once, not once per numbers field' );
-		lsrt_check( false !== strpos( $lsrt_html, '>2191–2195<' ) && false !== strpos( $lsrt_html, '>1866<' ), 'old "Ticket Numbers" lines are listed' );
+		lsrt_check( false !== strpos( $lsrt_html, '>36<' ) && false !== strpos( $lsrt_html, '>1866<' ), 'old "Ticket Numbers" lines are listed' );
+		lsrt_check( 3 === substr_count( $lsrt_html, 'Check order' ) && false !== strpos( $lsrt_html, 'need checking' ), 'an old line that doesn\'t match its quantity is flagged' );
 
 		$lsrt_order->set_status( 'cancelled' );
 		$lsrt_order->save();

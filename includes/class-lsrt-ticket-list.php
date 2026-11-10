@@ -102,13 +102,14 @@ final class LSRT_Ticket_List {
 			if ( ! $item ) {
 				continue;
 			}
+			$check = false;
 			if ( '_lsrt_numbers' === $it->meta_key ) {
 				// Split the line back into its books: numbers are saved book by book.
 				$numbers = array_values( array_filter( array_map( 'intval', explode( ',', (string) $it->numbers ) ) ) );
 				$qty     = max( 1, (int) $item->get_quantity() );
 				$books   = $numbers ? array_chunk( $numbers, max( 1, (int) floor( count( $numbers ) / $qty ) ) ) : array();
 			} else {
-				$books = $this->parse_legacy( (string) $it->numbers );
+				list( $books, $check ) = $this->legacy_books( (string) $it->numbers, $item );
 			}
 			if ( ! $books ) {
 				continue;
@@ -132,6 +133,7 @@ final class LSRT_Ticket_List {
 					'numbers'    => $book,
 					'size'       => count( $book ),
 					'amount'     => $each,
+					'check'      => $check,
 				);
 			}
 		}
@@ -151,6 +153,43 @@ final class LSRT_Ticket_List {
 	 */
 	private function legacy_keys() {
 		return (array) apply_filters( 'lsrt_ticket_list_legacy_keys', array( 'Ticket Numbers' ) );
+	}
+
+	/**
+	 * Books for an old line, using the variation's book size and the line quantity, since
+	 * buyers typed the old field every which way: the first number of each book, every
+	 * number, or a range.
+	 *
+	 * @return array { int[][] books, bool needs checking by hand }
+	 */
+	private function legacy_books( $text, WC_Order_Item_Product $item ) {
+		$parsed = $this->parse_legacy( $text );
+		$qty    = max( 1, (int) $item->get_quantity() );
+		$size   = $this->raffle->book_size( $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id() );
+		$all    = $parsed ? array_values( array_unique( array_merge( ...$parsed ) ) ) : array();
+		sort( $all );
+
+		if ( 1 === $size ) {
+			return array( array_map( static function ( $n ) { return array( $n ); }, $all ), count( $all ) !== $qty );
+		}
+		// Every number typed: split into books.
+		if ( count( $all ) === $qty * $size ) {
+			return array( array_chunk( $all, $size ), false );
+		}
+		// The first number of each book typed: fill in the rest.
+		if ( count( $parsed ) === $qty && count( $all ) === $qty ) {
+			return array( array_map( static function ( $n ) use ( $size ) { return range( $n, $n + $size - 1 ); }, $all ), false );
+		}
+		// Ranges and first numbers mixed, one per book.
+		if ( count( $parsed ) === $qty ) {
+			$books = array();
+			foreach ( $parsed as $p ) {
+				$books[] = 1 === count( $p ) ? range( $p[0], $p[0] + $size - 1 ) : $p;
+			}
+			$ok = ! array_filter( $books, static function ( $b ) use ( $size ) { return count( $b ) !== $size; } );
+			return array( $books, ! $ok );
+		}
+		return array( $parsed, true );
 	}
 
 	/**
@@ -237,6 +276,16 @@ final class LSRT_Ticket_List {
 		$first = $r['numbers'][0];
 		$last  = end( $r['numbers'] );
 		return $r['size'] > 1 ? $first . '–' . $last : (string) $first;
+	}
+
+	private function type( array $r ) {
+		if ( $r['check'] ) {
+			return __( 'Check order: numbers unclear', 'lumaha-simple-raffle-tickets' );
+		}
+		return $r['size'] > 1
+			/* translators: %d: tickets in the book */
+			? sprintf( __( 'Book of %d', 'lumaha-simple-raffle-tickets' ), $r['size'] )
+			: __( 'Single', 'lumaha-simple-raffle-tickets' );
 	}
 
 	private function buyer( WC_Order $order ) {
@@ -342,7 +391,9 @@ final class LSRT_Ticket_List {
 		$orders  = array();
 		$money   = 0.0;
 		$unpaid  = 0;
+		$check   = 0;
 		foreach ( $rows as $r ) {
+			$check += $r['check'] ? 1 : 0;
 			$tickets                           += $r['size'];
 			$orders[ $r['order']->get_id() ]    = true;
 			$money                             += $r['amount'];
@@ -362,6 +413,12 @@ final class LSRT_Ticket_List {
 			echo ' ';
 			/* translators: %s: number of tickets */
 			printf( esc_html__( '%s of them not paid yet (marked below).', 'lumaha-simple-raffle-tickets' ), esc_html( number_format_i18n( $unpaid ) ) );
+		}
+		if ( $check ) {
+			echo ' <span class="lsrt-bad">';
+			/* translators: %s: number of rows */
+			printf( esc_html__( '%s rows from older orders need checking against the order.', 'lumaha-simple-raffle-tickets' ), esc_html( number_format_i18n( $check ) ) );
+			echo '</span>';
 		}
 		if ( $clash ) {
 			echo ' <span class="lsrt-bad">';
@@ -391,14 +448,9 @@ final class LSRT_Ticket_List {
 			$date = $o->get_date_paid() ? $o->get_date_paid() : $o->get_date_created();
 			printf(
 				'<tr class="%s"><td class="lsrt-tick"><span class="lsrt-box"></span></td><td class="lsrt-num">%s</td><td>%s</td><td>%s</td><td><a href="%s">#%s</a></td><td>%s</td><td>%s</td><td>%s</td></tr>',
-				esc_attr( trim( ( $bad ? 'lsrt-clash ' : '' ) . ( $r['paid'] ? '' : 'lsrt-unpaid' ) ) ),
+				esc_attr( trim( ( $bad ? 'lsrt-clash ' : '' ) . ( $r['check'] ? 'lsrt-check ' : '' ) . ( $r['paid'] ? '' : 'lsrt-unpaid' ) ) ),
 				esc_html( $this->label( $r ) ),
-				esc_html(
-					$r['size'] > 1
-						/* translators: %d: tickets in the book */
-						? sprintf( __( 'Book of %d', 'lumaha-simple-raffle-tickets' ), $r['size'] )
-						: __( 'Single', 'lumaha-simple-raffle-tickets' )
-				),
+				esc_html( $this->type( $r ) ),
 				esc_html( $this->buyer( $o ) ),
 				esc_url( $o->get_edit_order_url() ),
 				esc_html( $o->get_order_number() ),
@@ -422,6 +474,7 @@ final class LSRT_Ticket_List {
 			.lsrt-table .lsrt-num { font-weight: 600; white-space: nowrap; }
 			.lsrt-box { display: inline-block; width: 1em; height: 1em; border: 1px solid #8c8f94; border-radius: 2px; vertical-align: middle; }
 			.lsrt-table tr.lsrt-unpaid td { color: #996800; }
+			.lsrt-table tr.lsrt-check td { background: #fcf0f1; }
 			.lsrt-table tr.lsrt-clash td, .lsrt-bad { color: #b32d2e; font-weight: 600; }
 			@media print {
 				#adminmenumain, #wpadminbar, #wpfooter, .notice, .update-nag, .lsrt-noprint, .lsrt-help { display: none !important; }
@@ -458,7 +511,7 @@ final class LSRT_Ticket_List {
 
 		$out = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- streaming a download.
 		fwrite( $out, "\xEF\xBB\xBF" ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- BOM so Excel reads UTF-8.
-		fputcsv( $out, array( 'Raffle', 'First number', 'Ticket numbers', 'Tickets', 'Buyer', 'Email', 'Phone', 'Order', 'Date', 'Paid by', 'Status', 'Amount', 'Sold twice' ) );
+		fputcsv( $out, array( 'Raffle', 'First number', 'Ticket numbers', 'Tickets', 'Type', 'Buyer', 'Email', 'Phone', 'Order', 'Date', 'Paid by', 'Status', 'Amount', 'Sold twice' ) );
 		foreach ( $rows as $r ) {
 			$o    = $r['order'];
 			$date = $o->get_date_paid() ? $o->get_date_paid() : $o->get_date_created();
@@ -472,6 +525,7 @@ final class LSRT_Ticket_List {
 						$r['numbers'][0],
 						$this->label( $r ),
 						$r['size'],
+						$this->type( $r ),
 						$this->buyer( $o ),
 						$o->get_billing_email(),
 						$o->get_billing_phone(),
