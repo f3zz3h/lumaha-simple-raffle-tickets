@@ -69,6 +69,20 @@ jobs:
           WP_PATH: wp
           DIST: ${{ github.workspace }}/plugin/dist
 
+      # WordPress.org's Plugin Check on the WordPress.org copy (installed by the smoke test).
+      # Errors fail the job; warnings are listed for a look.
+      - name: Plugin Check (WordPress.org zip)
+        run: |
+          wp plugin install plugin-check --activate --path=wp --quiet
+          echo "Plugin Check $(wp plugin get plugin-check --field=version --path=wp)"
+          wp plugin check lumaha-simple-raffle-tickets --path=wp --format=csv --fields=file,line,type,code,message > plugin-check.csv || true
+          cat plugin-check.csv
+          if grep -q ',ERROR,' plugin-check.csv; then
+            echo "::error::Plugin Check found errors (above)."
+            exit 1
+          fi
+          echo "No Plugin Check errors ($(grep -c ',WARNING,' plugin-check.csv || true) warnings)."
+
       - name: Show debug log
         if: always()
         run: |

@@ -18,10 +18,14 @@ final class LSRT_Ticket_List {
 	/** @var Lumaha_Simple_Raffle_Tickets */
 	private $raffle;
 
+	/** @var string Screen hook of the list page, set once the menu is added. */
+	private $hook = '';
+
 	public function __construct( Lumaha_Simple_Raffle_Tickets $raffle ) {
 		$this->raffle = $raffle;
 		add_action( 'admin_menu', array( $this, 'menu' ), 60 );
 		add_action( 'admin_post_' . self::CSV, array( $this, 'csv' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 	}
 
 	/** Who can see the list. manage_woocommerce = administrators and shop managers. */
@@ -30,7 +34,7 @@ final class LSRT_Ticket_List {
 	}
 
 	public function menu() {
-		add_submenu_page(
+		$this->hook = (string) add_submenu_page(
 			'woocommerce',
 			__( 'Raffle tickets', 'lumaha-simple-raffle-tickets' ),
 			__( 'Raffle tickets', 'lumaha-simple-raffle-tickets' ),
@@ -69,16 +73,19 @@ final class LSRT_Ticket_List {
 		$keys   = array_merge( array( '_lsrt_numbers' ), $legacy );
 		$in     = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
 		// BINARY: meta keys compare case-insensitively, and the plugin's own "Ticket numbers" must not count as an old key.
-		$items = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- admin report, no core API for this.
-			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- placeholders built above.
+		// $in is only "%s" placeholders, one per key, so every value still goes through prepare().
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		$items = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- admin report on WooCommerce's order line tables; no core API reads them by meta key.
+			$wpdb->prepare(
 				"SELECT oi.order_item_id, oi.order_id, oi.order_item_name, nm.meta_key, nm.meta_value AS numbers, pm.meta_value AS product_id
 				FROM {$wpdb->prefix}woocommerce_order_items oi
 				JOIN {$wpdb->prefix}woocommerce_order_itemmeta nm ON nm.order_item_id = oi.order_item_id AND BINARY nm.meta_key IN ($in)
 				LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta pm ON pm.order_item_id = oi.order_item_id AND pm.meta_key = '_product_id'
-				WHERE oi.order_item_type = 'line_item'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				WHERE oi.order_item_type = 'line_item'",
 				$keys
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		// One entry per line: the plugin's own numbers win over an old key on the same line.
 		$lines = array();
@@ -312,7 +319,6 @@ final class LSRT_Ticket_List {
 
 		echo '<div class="wrap lsrt-list">';
 		echo '<h1 class="wp-heading-inline">' . esc_html__( 'Raffle tickets', 'lumaha-simple-raffle-tickets' ) . '</h1>';
-		$this->styles();
 
 		if ( ! $years ) {
 			echo '<p>' . esc_html__( 'No raffle tickets have been sold online yet. Tickets show here once an order with ticket numbers is placed.', 'lumaha-simple-raffle-tickets' ) . '</p></div>';
@@ -353,7 +359,7 @@ final class LSRT_Ticket_List {
 		echo '<ul class="subsubsub lsrt-noprint"><li>' . implode( ' | </li><li>', $links ) . '</li></ul>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above.
 
 		printf(
-			'<p class="lsrt-actions lsrt-noprint"><a class="button" href="%s">%s</a> <button type="button" class="button" onclick="window.print()">%s</button></p>',
+			'<p class="lsrt-actions lsrt-noprint"><a class="button" href="%s">%s</a> <button type="button" class="button lsrt-print">%s</button></p>',
 			esc_url(
 				wp_nonce_url(
 					add_query_arg(
@@ -462,31 +468,16 @@ final class LSRT_Ticket_List {
 		echo '</tbody></table>';
 	}
 
-	private function styles() {
-		?>
-		<style>
-			.lsrt-list .lsrt-help { max-width: 60em; }
-			.lsrt-list .subsubsub { float: none; margin: 1em 0 0; }
-			.lsrt-list .lsrt-actions { margin: 1em 0; }
-			.lsrt-list h2 { margin-top: 1.5em; }
-			.lsrt-table { max-width: 70em; }
-			.lsrt-table .lsrt-tick { width: 2em; text-align: center; }
-			.lsrt-table .lsrt-num { font-weight: 600; white-space: nowrap; }
-			.lsrt-box { display: inline-block; width: 1em; height: 1em; border: 1px solid #8c8f94; border-radius: 2px; vertical-align: middle; }
-			.lsrt-table tr.lsrt-unpaid td { color: #996800; }
-			.lsrt-table tr.lsrt-check td { background: #fcf0f1; }
-			.lsrt-table tr.lsrt-clash td, .lsrt-bad { color: #b32d2e; font-weight: 600; }
-			@media print {
-				#adminmenumain, #wpadminbar, #wpfooter, .notice, .update-nag, .lsrt-noprint, .lsrt-help { display: none !important; }
-				#wpcontent, #wpbody-content { margin: 0 !important; padding: 0 !important; }
-				.lsrt-table { max-width: none; }
-				.lsrt-table a { color: inherit; text-decoration: none; }
-				.lsrt-list h2 { break-before: page; }
-				.lsrt-list h2:first-of-type { break-before: auto; }
-			}
-		</style>
-		<?php
+	/** Styles and the print button, on the list page only. */
+	public function enqueue( $hook ) {
+		if ( '' === $this->hook || $hook !== $this->hook ) {
+			return;
+		}
+		$url = plugin_dir_url( LSRT_PLUGIN_FILE ) . 'assets/';
+		wp_enqueue_style( 'lsrt-ticket-list', $url . 'ticket-list.css', array(), Lumaha_Simple_Raffle_Tickets::VERSION );
+		wp_enqueue_script( 'lsrt-ticket-list', $url . 'ticket-list.js', array(), Lumaha_Simple_Raffle_Tickets::VERSION, true );
 	}
+
 
 	/* ---------------------------------------------------------------------
 	 * CSV
@@ -546,7 +537,7 @@ final class LSRT_Ticket_List {
 				)
 			);
 		}
-		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- closes the php://output stream above; no file is written.
 		exit;
 	}
 

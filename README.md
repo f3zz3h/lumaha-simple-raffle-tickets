@@ -78,6 +78,8 @@ includes/
 assets/
   raffle.js                        Product page: one box per book/ticket, shows the filled-in numbers
   raffle.css                       Styles for the ticket boxes
+  ticket-list.css, ticket-list.js  Ticket list styles and its Print button
+languages/                         lumaha-simple-raffle-tickets.pot, made by the zip build (not committed)
 ```
 
 ### Data
@@ -117,7 +119,26 @@ Build a zip locally with `bash .github/scripts/build-zip.sh` (output in `dist/`)
 
 ### WordPress.org readme
 
-`readme.txt` is the plugin's WordPress.org-style listing (description, FAQ, changelog). Keep `Stable tag` and the changelog in step with the version when releasing.
+`readme.txt` is the plugin's WordPress.org-style listing (description, FAQ, changelog). Keep `Stable tag` and the changelog in step with the version when releasing. Upgrade notices must stay under 300 characters.
+
+### Automated checks
+
+- **PHP checks**: `php -l` on PHP 7.4, 8.0 and 8.3, and the WordPress Coding Standards security, SQL and i18n rules in `phpcs.xml.dist` (`composer install && vendor/bin/phpcs`). Warnings fail too, so every `phpcs:ignore` carries its reason.
+- **Install smoke test**: installs both zips on the latest WordPress and WooCommerce, checks the plugin loads, the GitHub updater works in the GitHub zip and is gone from the WordPress.org zip, then runs WordPress.org's [Plugin Check](https://wordpress.org/plugins/plugin-check/) on the WordPress.org zip. Plugin Check errors fail the job; warnings are listed in the log.
+- **Release**: builds the plugin zip on every pull request.
+
+### Submitting to WordPress.org
+
+Lessons from Lumaha Virtual Balloon Race's review, already applied here:
+
+- The WordPress.org copy must not update itself from anywhere else. `build-zip.sh --wporg` removes the updater file, its `require` block (between the `lsrt-github-updater:start`/`:end` markers), the `Update URI` header, `README.md` and the changelog line about GitHub updates, and fails if any mention is left.
+- Prefix everything with `lsrt` / `LSRT_` / `Lumaha_Simple_Raffle_Tickets` (four letters or more), including hooks, meta keys, options and script handles.
+- Sanitize request data as soon as it's read (`wp_unslash()` first, then the strictest sanitizer), escape on output, check capabilities and nonces on admin actions.
+- No inline `<script>` or `<style>`: enqueue files (or use `wp_add_inline_script()`).
+- Don't call `load_plugin_textdomain()`; WordPress.org loads translations for the slug's text domain. Every string with a placeholder needs a `translators:` comment.
+- Any external service must be listed in readme.txt under "External services" (this plugin calls none in the WordPress.org build).
+
+To submit: tag the release, download `lumaha-simple-raffle-tickets-<version>-wporg.zip` from the GitHub release and upload it at [wordpress.org/plugins/developers/add](https://wordpress.org/plugins/developers/add/). After approval, Lumaha Virtual Balloon Race's release workflow has a job that deploys each tag to the WordPress.org SVN, to copy here once the SVN repository exists.
 
 ### Testing locally
 
@@ -128,7 +149,7 @@ Any WordPress with WooCommerce will do (for example [wp-env](https://developer.w
 ## Known gaps
 
 - No settings page: the category, tag and default book size can only be changed with the filters above.
-- No translation files yet (strings are ready, text domain `lumaha-simple-raffle-tickets`).
+- No translations yet: the strings and the `.pot` template are ready (text domain `lumaha-simple-raffle-tickets`); once on WordPress.org they can be translated at translate.wordpress.org.
 - Numbers aren't checked against a range, so a typo like 10001 is accepted.
 - The sold-number check only adds an order note; it doesn't stop the sale.
 - Deleting the plugin leaves its order and product data behind.
