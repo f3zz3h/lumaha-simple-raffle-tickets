@@ -36,3 +36,30 @@ jobs:
             php -l "$file" > /dev/null || status=1
           done < <(find . -name '*.php' -not -path './.git/*' -print0)
           exit $status
+
+  wpcs:
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer packages
+        uses: actions/cache@v6
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Install PHPCS and the WordPress standards
+        run: composer install --no-interaction --no-progress
+
+      # Rules are in phpcs.xml.dist: escaping, sanitising, nonces, SQL, i18n. Errors and warnings both fail.
+      - name: WPCS
+        run: vendor/bin/phpcs

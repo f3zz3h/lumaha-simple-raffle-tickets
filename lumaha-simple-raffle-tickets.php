@@ -3,7 +3,7 @@
  * Plugin Name:       Lumaha Simple Raffle Tickets
  * Plugin URI:        https://github.com/f3zz3h/lumaha-simple-raffle-tickets
  * Description:       Asks buyers for their raffle ticket numbers. Books auto-fill from the first number, singles take one number each, and the numbers are saved on the order.
- * Version:           0.4.0
+ * Version:           0.5.0
  * Author:            Lumaha
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -11,6 +11,7 @@
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
  * Text Domain:       lumaha-simple-raffle-tickets
+ * Domain Path:       /languages
  * Update URI:        https://github.com/f3zz3h/lumaha-simple-raffle-tickets
  *
  * Which products: any product in the "Raffle tickets" category (slug raffle-tickets)
@@ -34,7 +35,7 @@ if ( file_exists( __DIR__ . '/includes/class-lsrt-github-updater.php' ) ) {
 
 final class Lumaha_Simple_Raffle_Tickets {
 
-	const VERSION        = '0.4.0';
+	const VERSION        = '0.5.0';
 	const META_BOOK_SIZE = '_lsrt_book_size';
 	const META_SOLD      = '_lsrt_sold';      // product meta: number => order id
 	const META_NUMBERS   = '_lsrt_numbers';   // order item meta: every number, comma separated
@@ -211,7 +212,7 @@ final class Lumaha_Simple_Raffle_Tickets {
 			esc_attr( wp_json_encode( (object) $sizes ) ),
 			(int) $default,
 			esc_attr( wp_json_encode( array_values( $old ) ) ),
-			$notices, // phpcs:ignore WordPress.Security.EscapeOutput -- WooCommerce notice HTML.
+			wp_kses_post( $notices ),
 			esc_html__( 'Enter your ticket numbers. For a book, enter the first number on the book and the rest fill in.', 'lumaha-simple-raffle-tickets' )
 		);
 	}
@@ -298,11 +299,13 @@ final class Lumaha_Simple_Raffle_Tickets {
 		$noun   = $size > 1 ? __( 'the first ticket number for each book', 'lumaha-simple-raffle-tickets' ) : __( 'a number for each ticket', 'lumaha-simple-raffle-tickets' );
 
 		if ( count( $starts ) !== (int) $qty ) {
+			/* translators: %s: what to enter, e.g. "the first ticket number for each book" */
 			wc_add_notice( sprintf( __( 'Please enter %s.', 'lumaha-simple-raffle-tickets' ), $noun ), 'error' );
 			return false;
 		}
 		foreach ( $starts as $s ) {
 			if ( ! ctype_digit( $s ) || (int) $s < 1 ) {
+				/* translators: %s: what the buyer typed */
 				wc_add_notice( sprintf( __( '"%s" is not a valid ticket number. Please enter whole numbers only.', 'lumaha-simple-raffle-tickets' ), esc_html( $s ) ), 'error' );
 				return false;
 			}
@@ -324,6 +327,7 @@ final class Lumaha_Simple_Raffle_Tickets {
 		) );
 		if ( $dupes ) {
 			sort( $dupes );
+			/* translators: %s: comma-separated ticket numbers */
 			wc_add_notice( sprintf( __( 'Ticket number(s) %s are entered more than once. Please check your numbers.', 'lumaha-simple-raffle-tickets' ), implode( ', ', $dupes ) ), 'error' );
 			return false;
 		}
@@ -388,7 +392,8 @@ final class Lumaha_Simple_Raffle_Tickets {
 			}
 			$count = empty( $item['lsrt'] ) ? 0 : count( $item['lsrt']['starts'] );
 			if ( $count !== (int) $item['quantity'] ) {
-				wc_add_notice( sprintf( __( 'The ticket numbers for "%s" don\'t match the quantity. Please remove it from your basket and add it again.', 'lumaha-simple-raffle-tickets' ), $item['data']->get_name() ), 'error' );
+				/* translators: %s: product name */
+				wc_add_notice( sprintf( __( 'The ticket numbers for "%s" don\'t match the quantity. Please remove it from your basket and add it again.', 'lumaha-simple-raffle-tickets' ), esc_html( $item['data']->get_name() ) ), 'error' );
 			}
 		}
 	}
@@ -431,9 +436,11 @@ final class Lumaha_Simple_Raffle_Tickets {
 			if ( $clash ) {
 				$bits = array();
 				foreach ( $clash as $n => $other ) {
-					$bits[] = sprintf( '%d (order #%d)', $n, $other );
+					/* translators: 1: ticket number, 2: order number */
+					$bits[] = sprintf( __( '%1$d (order #%2$d)', 'lumaha-simple-raffle-tickets' ), $n, $other );
 				}
-				$order->add_order_note( sprintf( 'Raffle: these ticket numbers were already paid for on another order: %s. Please check with the buyer.', implode( ', ', $bits ) ) );
+				/* translators: %s: comma-separated ticket numbers, each with its other order */
+				$order->add_order_note( sprintf( __( 'Raffle: these ticket numbers were already paid for on another order: %s. Please check with the buyer.', 'lumaha-simple-raffle-tickets' ), implode( ', ', $bits ) ) );
 			}
 		}
 		$order->update_meta_data( self::META_RECORDED, 1 );

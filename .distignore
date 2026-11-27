@@ -13,3 +13,4 @@
 composer.json
 composer.lock
 /docs
+phpcs.xml.dist

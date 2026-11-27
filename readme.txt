@@ -6,7 +6,7 @@ Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,10 @@ No. The plugin uses no external services.
 
 == Changelog ==
 
+= 0.5.0 =
+* Changed: ready for the WordPress.org plugin directory. Every message is translatable (including the order note about numbers sold twice), with notes for translators, and a translation template ships in the languages folder.
+* Changed: the ticket list's styles and Print button load from the plugin's own files instead of inline code, and error messages on the product page are escaped.
+
 = 0.4.0 =
 * New: **WooCommerce → Raffle tickets**, for administrators and shop managers. Every ticket number sold online, in number order, one tab per year and one list per raffle, with the buyer, order, payment method and status. Print it or download a CSV to tally against the paper stubs. Unpaid orders and numbers sold on two orders are highlighted.
 
@@ -87,6 +91,9 @@ No. The plugin uses no external services.
 * First version, built for and run on the Horfield SA website.
 
 == Upgrade Notice ==
+
+= 0.5.0 =
+Tidy-up for the WordPress.org plugin directory. Nothing changes for buyers or in your data.
 
 = 0.4.0 =
 Adds WooCommerce → Raffle tickets, a list of every ticket sold for tallying the paper stubs. No data changes.

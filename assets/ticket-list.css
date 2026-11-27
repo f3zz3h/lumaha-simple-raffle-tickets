@@ -1,0 +1,20 @@
+/* WooCommerce → Raffle tickets list. */
+.lsrt-list .lsrt-help { max-width: 60em; }
+.lsrt-list .subsubsub { float: none; margin: 1em 0 0; }
+.lsrt-list .lsrt-actions { margin: 1em 0; }
+.lsrt-list h2 { margin-top: 1.5em; }
+.lsrt-table { max-width: 70em; }
+.lsrt-table .lsrt-tick { width: 2em; text-align: center; }
+.lsrt-table .lsrt-num { font-weight: 600; white-space: nowrap; }
+.lsrt-box { display: inline-block; width: 1em; height: 1em; border: 1px solid #8c8f94; border-radius: 2px; vertical-align: middle; }
+.lsrt-table tr.lsrt-unpaid td { color: #996800; }
+.lsrt-table tr.lsrt-check td { background: #fcf0f1; }
+.lsrt-table tr.lsrt-clash td, .lsrt-bad { color: #b32d2e; font-weight: 600; }
+@media print {
+	#adminmenumain, #wpadminbar, #wpfooter, .notice, .update-nag, .lsrt-noprint, .lsrt-help { display: none !important; }
+	#wpcontent, #wpbody-content { margin: 0 !important; padding: 0 !important; }
+	.lsrt-table { max-width: none; }
+	.lsrt-table a { color: inherit; text-decoration: none; }
+	.lsrt-list h2 { break-before: page; }
+	.lsrt-list h2:first-of-type { break-before: auto; }
+}

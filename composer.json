@@ -1,0 +1,23 @@
+{
+	"name": "f3zz3h/lumaha-simple-raffle-tickets",
+	"description": "Development tools for the Lumaha Simple Raffle Tickets WordPress plugin. The plugin itself has no Composer dependencies.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require-dev": {
+		"squizlabs/php_codesniffer": "^3.13",
+		"wp-coding-standards/wpcs": "^3.1",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
+		"platform": {
+			"php": "8.3"
+		}
+	},
+	"scripts": {
+		"phpcs": "phpcs"
+	}
+}
